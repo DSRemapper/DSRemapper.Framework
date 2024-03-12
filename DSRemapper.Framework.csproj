@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <Nullable>enable</Nullable>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	  <Title>$(AssemblyName) - DSR-SDK</Title>
+	  <Authors>Oscar-Wohlfarhrt</Authors>
+	  <Description>Package of DSRemapper app and part of the DSR-SDK package</Description>
+	  <Copyright>Copyright (c) 2023 Oscar Andrés Wohlfarhrt</Copyright>
+	  <RepositoryType>git</RepositoryType>
+	  <PackageProjectUrl>https://github.com/Oscar-Wohlfarhrt/DSRemapper</PackageProjectUrl>
+	  <RepositoryUrl>https://github.com/Oscar-Wohlfarhrt/DSRemapper</RepositoryUrl>
+	  <AssemblyVersion>0.2.1</AssemblyVersion>
+	  <FileVersion>$(AssemblyVersion)</FileVersion>
+	  <Version>$(AssemblyVersion)-beta</Version>
+	  <GenerateDocumentationFile>True</GenerateDocumentationFile>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	  <PackageReadmeFile>Readme.md</PackageReadmeFile>
+	  <PackageReleaseNotes>First release of the package</PackageReleaseNotes>
+	  <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DSRemapper.Core" Version="0.2.3-beta" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Readme.md">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="Pack">
+		<Exec Command="copy $(OutputPath)$(TargetName).$(Version).nupkg ..\nugets\* /Y" />
+	</Target>
+
+</Project>
