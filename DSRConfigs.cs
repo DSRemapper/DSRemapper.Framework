@@ -59,6 +59,21 @@ namespace DSRemapper.Framework
             return remapperConfigs.Find((c) => c.Id == id);
 #pragma warning restore CS8603 // Posible tipo de valor devuelto de referencia nulo
         }
+        /// <summary>
+        /// Sets the controller config associated with the id.
+        /// </summary>
+        /// <param name="config">The new config for the controller</param>
+        /// <param name="id">Id of a physical controller</param>
+        /// <returns></returns>
+        public static void SetConfig(RemapperConfig config,string id)
+        {
+            int index = remapperConfigs.IndexOf(remapperConfigs.Find((c) => c.Id == id)!);
+            if (index < 0)
+                remapperConfigs.Add(config);
+            else
+                remapperConfigs[index] = config;
+            SaveConfigFile();
+        }
 
         /// <summary>
         /// Sets the last profile field for the physical controller associated with the id.

@@ -38,6 +38,13 @@ namespace DSRemapper.Framework
         /// Occurs when the remapper plugin invokes an OnLog event.
         /// </summary>
         public event RemapperEventArgs? OnLog;
+        /*public void ClearAllOnLogEvents()
+        {
+            foreach(var del in OnLog?.GetInvocationList() ?? [])
+            {
+                OnLog -= (RemapperEventArgs)del;
+            }
+        }*/
         /// <summary>
         /// Remapper class constructor
         /// </summary>
@@ -50,13 +57,15 @@ namespace DSRemapper.Framework
             logger = DSRLogger.GetLogger($"DSRempper.Remapper({controller.Name},{controller.Id})");
         }
         /// <inheritdoc cref="IDSRInputController.Id"/>
-        public string Id => controller.Id;
+        public string Id => Controller.Id;
         /// <inheritdoc cref="IDSRInputController.Name"/>
-        public string Name => controller.Name;
+        public string Name => Controller.Name;
         /// <inheritdoc cref="IDSRInputController.Type"/>
-        public string Type => controller.Type;
+        public string Type => Controller.Type;
+        /// <inheritdoc cref="IDSRInputController.Info"/>
+        public string Info => Controller.Info;
         /// <inheritdoc cref="IDSRInputController.IsConnected"/>
-        public bool IsConnected => controller.IsConnected;
+        public bool IsConnected => Controller.IsConnected;
         /// <summary>
         /// Gets if the remapper is runing it's thread.
         /// </summary>
