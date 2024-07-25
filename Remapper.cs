@@ -184,7 +184,7 @@ namespace DSRemapper.Framework
                 }
                 catch (Exception e)
                 {
-                    logger.LogError($"{e.Source}:\n{e.Message}");
+                    logger.LogError($"{e.Source}:\n{e.Message}\n{e.StackTrace}");
                 }
 
                 Thread.Sleep(1);
