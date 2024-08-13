@@ -38,13 +38,6 @@ namespace DSRemapper.Framework
         /// Occurs when the remapper plugin invokes an OnLog event.
         /// </summary>
         public event RemapperEventArgs? OnLog;
-        /*public void ClearAllOnLogEvents()
-        {
-            foreach(var del in OnLog?.GetInvocationList() ?? [])
-            {
-                OnLog -= (RemapperEventArgs)del;
-            }
-        }*/
         /// <summary>
         /// Remapper class constructor
         /// </summary>
@@ -139,12 +132,11 @@ namespace DSRemapper.Framework
         /// <param name="profile">File path to the remap profile</param>
         public void SetProfile(string profile)
         {
-            //if (profile == ""){
-                if (remapper != null)
-                    remapper.OnLog -= OnLog;
-                remapper?.Dispose();
-                remapper = null;
-            //}
+            if (remapper != null)
+                remapper.OnLog -= OnLog;
+            remapper?.Dispose();
+            remapper = null;
+
             if(profile != "")
             {
                 string fullPath = Path.Combine(DSRPaths.ProfilesPath, profile);
