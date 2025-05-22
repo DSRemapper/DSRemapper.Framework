@@ -1,7 +1,7 @@
 ﻿using DSRemapper.Core;
 using DSRemapper;
 using System.Reflection;
-using FireLibs.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace DSRemapper.Framework
 {
@@ -76,7 +76,7 @@ namespace DSRemapper.Framework
         {
             StopScanner();
             DisposeAllRemappers();
-            LoggerFactory.RemoveLogger("DSRMainLogger");
+            //LoggerFactory.RemoveLogger("DSRMainLogger");
         }
         /// <summary>
         /// Dispose all remappers
