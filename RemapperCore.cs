@@ -12,10 +12,12 @@ namespace DSRemapper.Framework
     {
         private static readonly DSRLogger logger = DSRLogger.GetLogger("DSRempper.RemapperCore");
         /// <summary>
-        /// Remappers list of DSRemapper, referencing all the plugged and detected devices.
+        /// Remappers list of the devices and their remapper threads. References all the plugged and recogniced devices.
         /// </summary>
         public static List<Remapper> Remappers { get; private set; } = [];
-
+        /// <summary>
+        /// Thread that scans for devices.
+        /// </summary>
         private static Thread? deviceScannerThread;
         private static CancellationTokenSource tokenSource = new();
         private static CancellationToken cancellationToken;

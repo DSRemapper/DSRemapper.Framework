@@ -15,8 +15,10 @@ namespace DSRemapper.Framework
     public class Remapper : IDisposable
     {
         private readonly DSRLogger logger;
-
         private readonly IDSRInputController controller;
+        /// <summary>
+        /// Remapper plugin interface
+        /// </summary>
         private IDSRemapper? remapper = null;
         private Thread? thread = null;
         private CancellationTokenSource cancellationTokenSource;
@@ -137,7 +139,7 @@ namespace DSRemapper.Framework
             remapper?.Dispose();
             remapper = null;
 
-            if(profile != "")
+            if (profile != "")
             {
                 string fullPath = Path.Combine(DSRPaths.ProfilesPath, profile);
                 if (File.Exists(fullPath))
@@ -152,6 +154,7 @@ namespace DSRemapper.Framework
                 }
             }
             CurrentProfile = profile;
+            DSRConfigs.SetLastProfile(Id, profile);
         }
         /// <summary>
         /// Reloads the current profile on the remapper plugin object.
@@ -181,6 +184,14 @@ namespace DSRemapper.Framework
 
                 Thread.Sleep(1);
             }
+        }
+        /// <summary>
+        /// Returns the byte array of the image for the controller
+        /// </summary>
+        /// <returns>The image as a byte array</returns>
+        public byte[] GetImage()
+        {
+            return PluginLoader.GetControllerImage(controller);
         }
     }
 }
