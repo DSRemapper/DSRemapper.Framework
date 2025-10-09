@@ -96,6 +96,9 @@ namespace DSRemapper.Framework
         private readonly Stopwatch sw = new();
         private double infoTimer = 0.0;
         private const double infoLoopTime = 1.0;
+        private double consoleTimer = 0.0;
+        private const double consoleLoopTime = 0.2;
+        private (string message, LogLevel level) lastConsole = ("", LogLevel.None);
 
         /// <inheritdoc cref="IDSRInputController.Connect"/>
         public bool Connect()
@@ -183,7 +186,7 @@ namespace DSRemapper.Framework
         }
         private void OnDeviceConsole(object sender, string message, LogLevel level)
         {
-            OnGlobalDeviceConsole?.Invoke(Id, message, level);
+            lastConsole = (message, level);
         }
         /// <summary>
         /// Reloads the current profile on the remapper plugin object.
@@ -203,6 +206,7 @@ namespace DSRemapper.Framework
                         IDSRInputReport report = controller.GetInputReport();
                         OnRead?.Invoke(report);
                         infoTimer += delta;
+                        consoleTimer += delta;
                         if (infoTimer >= infoLoopTime)
                         {
                             infoTimer -= infoLoopTime;
@@ -211,6 +215,11 @@ namespace DSRemapper.Framework
                         if (remapper != null)
                         {
                             controller.SendOutputReport(remapper.Remap(report, delta));
+                        }
+                        if (consoleTimer >= consoleLoopTime)
+                        {
+                            consoleTimer -= consoleLoopTime;
+                            OnGlobalDeviceConsole?.Invoke(Id, lastConsole.message, lastConsole.level);
                         }
                     }
                 }
