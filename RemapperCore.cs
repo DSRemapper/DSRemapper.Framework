@@ -137,12 +137,13 @@ namespace DSRemapper.Framework
         /// <summary>
         /// Creates a new remapper object using the remap profile file extension to get the right one.
         /// </summary>
-        /// <param name="fileExt"></param>
+        /// <param name="fileExt">The extension of the profile file from which the remapper plugin can be infered</param>
+        /// <param name="logger">Contextualized logger that will be used for the remapper plugin</param>
         /// <returns></returns>
-        internal static IDSRemapper? CreateRemapper(string fileExt)
+        internal static IDSRemapper? CreateRemapper(string fileExt, DSRLogger logger)
         {
             if (PluginLoader.RemapperPlugins.TryGetValue(fileExt,out ConstructorInfo? remapType))
-                return (IDSRemapper?)remapType?.Invoke(null);
+                return (IDSRemapper?)remapType?.Invoke([logger]);
 
             return null;
         }

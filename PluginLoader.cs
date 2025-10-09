@@ -90,7 +90,8 @@ namespace DSRemapper.Framework
                             Stream s = ent.Open();
                             MemoryStream ms = new();
                             s.CopyTo(ms);
-                            ControllerImages.Add($"{plugin}/{ent.FullName}", ms.ToArray());
+                            ControllerImages.Add($"{ent.FullName}", ms.ToArray());
+                            //ControllerImages.Add($"{plugin}/{ent.FullName}", ms.ToArray());
                             ms.Close();
                             s.Close();
                             logger.LogInformation($"Controller image found: {Path.GetRelativePath(DSRPaths.PluginsPath, plugin)}/{ent.FullName}");
@@ -134,7 +135,8 @@ namespace DSRemapper.Framework
         /// <returns>The image as a byte array</returns>
         public static byte[] GetControllerImage(IDSRInputController ctrl)
         {
-            string imgPath = $"{GetPluginPath(ctrl.GetType().Assembly)}/{ctrl.ImgPath}";
+            string imgPath = $"{ctrl.ImgPath}";
+            //string imgPath = $"{GetPluginPath(ctrl.GetType().Assembly)}/{ctrl.ImgPath}";
             if (ControllerImages.TryGetValue(imgPath, out byte[]? img))
                 return img;
 
@@ -196,7 +198,7 @@ namespace DSRemapper.Framework
                     string[]? fileExts = type.GetCustomAttribute<RemapperAttribute>()?.FileExts;
                     if (fileExts != null)
                     {
-                        ConstructorInfo? ctr = type.GetConstructor(Type.EmptyTypes);
+                        ConstructorInfo? ctr = type.GetConstructor([typeof(DSRLogger)]);
                         if (ctr != null) {
                             foreach (string fileExt in fileExts)
                             {
@@ -209,7 +211,7 @@ namespace DSRemapper.Framework
                             }
                         }
                         else
-                            logger.LogWarning($"{type.FullName}: Remapper plugin doesn't have a public parameterless constructor");
+                            logger.LogWarning($"{type.FullName}: Remapper plugin doesn't have a public suitable constructor");
                     }
                     else
                         logger.LogWarning($"{type.FullName}: Remapper plugin doesn't have a file extension assigned");
