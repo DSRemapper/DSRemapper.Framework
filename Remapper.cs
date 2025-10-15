@@ -69,6 +69,10 @@ namespace DSRemapper.Framework
             cancellationTokenSource = new CancellationTokenSource();
             cancellationToken = cancellationTokenSource.Token;
             logger = DSRLogger.GetLogger($"DSRempper.Remapper({controller.Name},{controller.Id})");
+            RemapperConfig config = DSRConfigs.GetConfig(controller.Id);
+            SetProfile(config.LastProfile);
+            if (config.AutoConnect)
+                Start();
         }
         /// <inheritdoc cref="IDSRInputController.Id"/>
         public string Id => Controller.Id;
@@ -97,7 +101,7 @@ namespace DSRemapper.Framework
         private double infoTimer = 0.0;
         private const double infoLoopTime = 1.0;
         private double consoleTimer = 0.0;
-        private const double consoleLoopTime = 0.2;
+        private const double consoleLoopTime = 1.0/10.0;
         private (string message, LogLevel level) lastConsole = ("", LogLevel.None);
 
         /// <inheritdoc cref="IDSRInputController.Connect"/>
