@@ -36,7 +36,7 @@
   </ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="Pack">
-		<Exec Command="copy $(OutputPath)$(TargetName).$(Version).nupkg ..\nugets\* /Y" />
+		<Exec Command="copy $(OutputPath)$(TargetName).$(Version).nupkg ..\nugets\* /Y" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
 	</Target>
 
 </Project>

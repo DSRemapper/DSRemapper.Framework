@@ -17,7 +17,7 @@ namespace DSRemapper.Framework
     /// <summary>
     /// Class used for loading all DSRemapper assemblies and plugins
     /// </summary>
-    public class PluginLoader
+    public static class PluginLoader
     {
         private static readonly DSRLogger logger = DSRLogger.GetLogger("DSRemapper.PluginLoader");
         private static readonly List<Assembly> pluginAssemblies = [];
@@ -38,6 +38,7 @@ namespace DSRemapper.Framework
         /// Controllers images files as byte arrays
         /// </summary>
         public readonly static SortedList<string, byte[]> ControllerImages = [];
+        public readonly static List<Action> PluginFreeMethods = [];
 
         private static Assembly? PluginAssemblyResolverEventHandler(object? sender, ResolveEventArgs args)
         {
@@ -177,6 +178,8 @@ namespace DSRemapper.Framework
 
                 if (type.IsAssignableTo(typeof(IDSROutputController)))
                 {
+                    PluginFreeMethods.Add(type.GetMethod("PluginFree", BindingFlags.Public | BindingFlags.Static)?.CreateDelegate<Action>() ?? (() => { }));
+
                     string? path = type.GetCustomAttribute<EmulatedControllerAttribute>()?.DevicePath;
                     if (path != null)
                     {
@@ -196,11 +199,13 @@ namespace DSRemapper.Framework
                 }
                 else if (type.IsAssignableTo(typeof(IDSRemapper)))
                 {
+                    PluginFreeMethods.Add(type.GetMethod("PluginFree", BindingFlags.Public | BindingFlags.Static)?.CreateDelegate<Action>() ?? (() => { }));
                     string[]? fileExts = type.GetCustomAttribute<RemapperAttribute>()?.FileExts;
                     if (fileExts != null)
                     {
                         ConstructorInfo? ctr = type.GetConstructor([typeof(DSRLogger)]);
-                        if (ctr != null) {
+                        if (ctr != null)
+                        {
                             foreach (string fileExt in fileExts)
                             {
                                 if (RemapperPlugins.TryAdd(fileExt, ctr))
@@ -219,7 +224,7 @@ namespace DSRemapper.Framework
                 }
                 else if (type.IsAssignableTo(typeof(IDSRDeviceScanner)))
                 {
-                    //typeof(IDSRDeviceScanner).GetMethod("PluginExit")?.CreateDelegate<Action>();
+                    PluginFreeMethods.Add(type.GetMethod("PluginFree", BindingFlags.Public | BindingFlags.Static)?.CreateDelegate<Action>() ?? (() => { }));
                     ConstructorInfo? ctr = type.GetConstructor(Type.EmptyTypes);
                     if (ctr != null)
                     {
@@ -232,6 +237,14 @@ namespace DSRemapper.Framework
                         logger.LogWarning($"{type.FullName}: Scanner plugin doesn't have a public parameterless constructor");
                 }
             }
+        }
+        /// <summary>
+        /// Calls all registered PluginFree methods in the loaded plugins to free any unmanaged resources allocated by the plugins.
+        /// </summary>
+        public static void FreeAllPlugins()
+        {
+            foreach(Action freeMethod in PluginFreeMethods)
+                freeMethod();
         }
     }
 }
