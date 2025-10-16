@@ -10,6 +10,7 @@ using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace DSRemapper.Framework
 {    
@@ -218,6 +219,7 @@ namespace DSRemapper.Framework
                 }
                 else if (type.IsAssignableTo(typeof(IDSRDeviceScanner)))
                 {
+                    //typeof(IDSRDeviceScanner).GetMethod("PluginExit")?.CreateDelegate<Action>();
                     ConstructorInfo? ctr = type.GetConstructor(Type.EmptyTypes);
                     if (ctr != null)
                     {

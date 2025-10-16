@@ -78,7 +78,7 @@ namespace DSRemapper.Framework
         {
             StopScanner();
             DisposeAllRemappers();
-            //LoggerFactory.RemoveLogger("DSRMainLogger");
+            PluginLoader.FreePlugins();
         }
         /// <summary>
         /// Dispose all remappers
