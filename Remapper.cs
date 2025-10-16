@@ -232,7 +232,7 @@ namespace DSRemapper.Framework
                     logger.LogError($"{e.Source}:\n{e.Message}\n{e.StackTrace}");
                 }
 
-                Thread.Sleep(1); // to prevent CPU overload and leave space for other threads if it's necesary
+                //Thread.Sleep(1); // to prevent CPU overload and leave space for other threads if it's necesary
             }
         }
         /// <summary>
