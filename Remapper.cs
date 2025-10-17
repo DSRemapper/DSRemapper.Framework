@@ -28,12 +28,22 @@ namespace DSRemapper.Framework
         /// <summary>
         /// Delegate for the ControllerRead event
         /// </summary>
-        /// <param name="report"></param>
+        /// <param name="report">The device input report</param>
         public delegate void ControllerRead(IDSRInputReport report);
         /// <summary>
         /// Occurs when a DSRemapper standard input report from the controller is readed
         /// </summary>
         public event ControllerRead? OnRead;
+        /// <summary>
+        /// Delegate for the ControllerRead event
+        /// </summary>
+        /// <param name="deviceId">The device id that is sending the report</param>
+        /// <param name="report">The device input report</param>
+        public delegate void GlobalControllerRead(string deviceId, IDSRInputReport report);
+        /// <summary>
+        /// Occurs when any DSRemapper standard input report is readed from a controller
+        /// </summary>
+        public static event GlobalControllerRead? OnGlobalRead;
         /// <summary>
         /// Gets all the subscriptions to the 'OnRead' event. For debugging purposes.
         /// </summary>
@@ -208,7 +218,7 @@ namespace DSRemapper.Framework
                     if (IsConnected)
                     {
                         IDSRInputReport report = controller.GetInputReport();
-                        OnRead?.Invoke(report);
+                        OnGlobalRead?.Invoke(Id,report);
                         infoTimer += delta;
                         consoleTimer += delta;
                         if (infoTimer >= infoLoopTime)
@@ -232,7 +242,7 @@ namespace DSRemapper.Framework
                     logger.LogError($"{e.Source}:\n{e.Message}\n{e.StackTrace}");
                 }
 
-                //Thread.Sleep(1); // to prevent CPU overload and leave space for other threads if it's necesary
+                Thread.Sleep(1); // to prevent CPU overload and leave space for other threads if it's necesary
             }
         }
         /// <summary>

@@ -78,7 +78,6 @@ namespace DSRemapper.Framework
         {
             StopScanner();
             DisposeAllRemappers();
-            PluginLoader.FreePlugins();
         }
         /// <summary>
         /// Dispose all remappers
