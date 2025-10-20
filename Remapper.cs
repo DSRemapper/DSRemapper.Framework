@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
+using System.Linq.Expressions;
 
 namespace DSRemapper.Framework
 {
@@ -70,6 +72,16 @@ namespace DSRemapper.Framework
         /// </summary>
         public static event GlobalDeviceInfoEventArgs? OnDeviceInfo;
         /// <summary>
+        /// Dictionary of custom actions created on the controller plugin. This can be used on the interface.
+        /// </summary>
+        /// <returns>Dictionary of actions</returns>
+        public Dictionary<string, Action> CustomActions { get; private set; }
+        /// <summary>
+        /// Dictionary of custom methods created on the controller plugin. This can be accesed by the remapper plugins.
+        /// </summary>
+        /// <returns>Dictionary of method delegates</returns>
+        public Dictionary<string, Delegate> CustomMethods { get; private set; }
+        /// <summary>
         /// Remapper class constructor
         /// </summary>
         /// <param name="controller">The controller asigned to the remapper</param>
@@ -83,6 +95,28 @@ namespace DSRemapper.Framework
             SetProfile(config.LastProfile);
             if (config.AutoConnect)
                 Start();
+
+            var customMethods = controller.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public);
+            CustomMethods = new(customMethods
+                .Where(m => m.CustomAttributes.Any(a => a.AttributeType == typeof(CustomMethodAttribute)))
+                .Select(m =>
+                {
+                    CustomMethodAttribute? attr = m.GetCustomAttribute<CustomMethodAttribute>();
+                    List<Type> parameterTypes = [.. m.GetParameters().Select(p => p.ParameterType)];
+                    parameterTypes.Add(m.ReturnType);
+                    Type delegateType = Expression.GetDelegateType([.. parameterTypes]);
+                    return new KeyValuePair<string, Delegate>(attr?.InternalName ?? m.Name, m.CreateDelegate(delegateType, Controller));
+                }));
+            CustomActions = new(customMethods
+                .Where(m => 
+                    m.GetCustomAttribute<CustomMethodAttribute>() is { ScriptOnly: false } &&
+                    m.ReturnType == typeof(void) && 
+                    m.GetParameters().Length == 0)
+                .Select(m =>
+                {
+                    CustomMethodAttribute? attr = m.GetCustomAttribute<CustomMethodAttribute>();
+                    return new KeyValuePair<string, Action>(attr?.InternalName ?? m.Name, m.CreateDelegate<Action>(Controller));
+                }));
         }
         /// <inheritdoc cref="IDSRInputController.Id"/>
         public string Id => Controller.Id;
@@ -191,7 +225,7 @@ namespace DSRemapper.Framework
                     if (remapper != null)
                     {
                         remapper.OnDeviceConsole += OnDeviceConsole;
-                        remapper.SetScript(fullPath);
+                        remapper.SetScript(fullPath, CustomMethods);
                     }
                 }
             }
@@ -239,7 +273,7 @@ namespace DSRemapper.Framework
                 }
                 catch (Exception e)
                 {
-                    logger.LogError($"{e.Source}:\n{e.Message}\n{e.StackTrace}");
+                    logger.LogError($"{e.Source}[{e.TargetSite}]({e.GetType().FullName}):\n{e.Message}\n{e.StackTrace}");
                 }
 
                 Thread.Sleep(1); // to prevent CPU overload and leave space for other threads if it's necesary
