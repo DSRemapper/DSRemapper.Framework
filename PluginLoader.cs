@@ -54,12 +54,19 @@ namespace DSRemapper.Framework
         }
 
         /// <summary>
+        /// Retrives all the plugin files that are located in the <see cref="DSRemapper.Core.DSRPaths.PluginsPath"/>
+        /// </summary>
+        /// <returns>List of plugin files</returns>
+        public static string[] GetPluginFiles() =>
+            [..Directory.GetFiles(DSRPaths.PluginsPath, "*.*", SearchOption.AllDirectories)
+                .Where((f)=>f.EndsWith(".zip")||f.EndsWith(".dsrp"))];
+
+        /// <summary>
         /// Loads the assemblies inside the DSRemapper Plugins folder and subfolders
         /// </summary>
         public static void LoadPluginAssemblies()
         {
-            string[] plugins = [..Directory.GetFiles(DSRPaths.PluginsPath, "*.*", SearchOption.AllDirectories)
-                .Where((f)=>f.EndsWith(".zip")||f.EndsWith(".dsrp"))];
+            string[] plugins = GetPluginFiles();
             foreach (string plugin in plugins)
             {
                 ZipArchive za = ZipFile.Open(plugin, ZipArchiveMode.Read);
