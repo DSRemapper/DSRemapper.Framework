@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DSRemapper.Core\DSRemapper.Core.csproj" />
+    <PackageReference Include="DSRemapper.Core" Version="0.4.5-beta" />
   </ItemGroup>
 
   <ItemGroup>
