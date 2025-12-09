@@ -35,7 +35,7 @@
     </None>
   </ItemGroup>
 
-	<Target Name="PostBuild" AfterTargets="Pack">
+	<Target Name="PostBuild" AfterTargets="Pack" Condition="'$(IS_CI_BUILD)' != 'true'">
 		<Exec Command="copy $(OutputPath)$(TargetName).$(Version).nupkg ..\nugets\* /Y" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
 		<Exec Command="cp &quot;$(OutputPath)$(TargetName).$(Version).nupkg&quot; &quot;../nugets/&quot; -f" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
 	</Target>
