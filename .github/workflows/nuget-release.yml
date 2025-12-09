@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
-      secrets: inherit
+      contents: write
+      #secrets: inherit
 
     steps:
       - uses: actions/checkout@v4
@@ -38,7 +38,9 @@ jobs:
           -p:FileVersion=${{ steps.version_extract.outputs.BASE_VERSION }}
       
       - name: Publish to NuGet.org
-        run: dotnet nuget push "./build/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push "./build/*.nupkg" --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 
       - name: Create GitHub Release with Changelog
         id: create_release
