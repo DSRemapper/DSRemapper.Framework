@@ -16,8 +16,9 @@ namespace DSRemapper.Framework
     /// <summary>
     /// Remapper container class. Contains the thread and the remapper plugin in charge of remapping the controller.
     /// </summary>
-    public class Remapper : IDisposable
+    public class Remapper : IEquatable<Remapper>, IEquatable<IDSRInputController>, IDisposable
     {
+        private readonly object _remLock = new();
         private readonly DSRLogger logger;
         private readonly IDSRInputController controller;
         /// <summary>
@@ -33,34 +34,24 @@ namespace DSRemapper.Framework
         /// <param name="report">The device input report</param>
         public delegate void ControllerRead(IDSRInputReport report);
         /// <summary>
-        /// Occurs when a DSRemapper standard input report from the controller is readed
-        /// </summary>
-        public event ControllerRead? OnRead;
-        /// <summary>
         /// Delegate for the ControllerRead event
         /// </summary>
         /// <param name="deviceId">The device id that is sending the report</param>
         /// <param name="report">The device input report</param>
         public delegate void GlobalControllerRead(string deviceId, IDSRInputReport report);
         /// <summary>
-        /// Occurs when any DSRemapper standard input report is readed from a controller
+        /// Occurs when any DSRemapper standard input report is readed from a controller.
+        /// It's throtled at 20Hz (each <see cref="Remapper"/> is independed) since it's use is intended of UI only. 
         /// </summary>
         public static event GlobalControllerRead? OnGlobalRead;
-        /// <summary>
-        /// Gets all the subscriptions to the 'OnRead' event. For debugging purposes.
-        /// </summary>
-        public int OnReadSubscriptors => OnRead?.GetInvocationList().Length ?? 0;
-        /*/// <summary>
-        /// Occurs when the remapper plugin sends a device console message.
-        /// </summary>
-        public event DeviceConsoleEventArgs? OnDeviceConsole;*/
         
         /// <summary>
         /// Delegate for Global Device Console events
         /// </summary>
         public delegate void GlobalDeviceConsoleEventArgs(string deviceId, string message, LogLevel level);
         /// <summary>
-        /// Occurs when a remapper plugin sends a Device Console event to DSRemapper
+        /// Occurs when a remapper plugin sends a Device Console event to DSRemapper.
+        /// It's throtled at 10Hz (each <see cref="Remapper"/> is independed) since it's use is intended of UI only. 
         /// </summary>
         public static event GlobalDeviceConsoleEventArgs? OnGlobalDeviceConsole;
         /// <summary>
@@ -68,7 +59,8 @@ namespace DSRemapper.Framework
         /// </summary>
         public delegate void GlobalDeviceInfoEventArgs(string deviceId, string deviceInfo);
         /// <summary>
-        /// Occurs when a remapper plugin sends a Device Console event to DSRemapper
+        /// Occurs every second that for any <see cref="Remapper"/> is running.
+        /// It's throtled at 1Hz (each <see cref="Remapper"/> is independed) since it's use is intended of UI only. 
         /// </summary>
         public static event GlobalDeviceInfoEventArgs? OnDeviceInfo;
         /// <summary>
@@ -142,10 +134,12 @@ namespace DSRemapper.Framework
         public IDSRInputController Controller { get => controller; }
         
         private readonly Stopwatch sw = new();
-        private double infoTimer = 0.0;
-        private const double infoLoopTime = 1.0;
-        private double consoleTimer = 0.0;
-        private const double consoleLoopTime = 1.0/10.0;
+        private double onReadTimer = onReadLoopTime;
+        private const double onReadLoopTime = 1.0/20.0; // 20Hz
+        private double infoTimer = infoLoopTime;
+        private const double infoLoopTime = 1.0; // 1Hz
+        private double consoleTimer = consoleLoopTime;
+        private const double consoleLoopTime = 1.0/10.0; // 10Hz
         private (string message, LogLevel level) lastConsole = ("", LogLevel.None);
 
         /// <inheritdoc cref="IDSRInputController.Connect"/>
@@ -170,7 +164,6 @@ namespace DSRemapper.Framework
             Stop();
             remapper?.Dispose();
             controller.Dispose();
-            GC.SuppressFinalize(this);
         }
         /// <summary>
         /// Starts the remapper thread for remapping the controller
@@ -187,6 +180,7 @@ namespace DSRemapper.Framework
                     Name = $"{controller.Name} Remapper",
                     Priority = ThreadPriority.AboveNormal
                 };
+                ReloadProfile();
                 thread.Start();
             }
         }
@@ -200,9 +194,17 @@ namespace DSRemapper.Framework
             {
                 thread.Join();
                 Disconnect();
+                DisposeRemapper();
                 sw.Reset();
                 sw.Stop();
             }
+        }
+        private void DisposeRemapper()
+        {
+            if (remapper != null)
+                remapper.OnDeviceConsole -= OnDeviceConsole;
+            remapper?.Dispose();
+            remapper = null;
         }
         /// <summary>
         /// Sets the profile to the remapper plugin object used for the remap.
@@ -210,27 +212,22 @@ namespace DSRemapper.Framework
         /// <param name="profile">File path to the remap profile</param>
         public void SetProfile(string profile)
         {
-            if (remapper != null)
-                remapper.OnDeviceConsole -= OnDeviceConsole;
-            remapper?.Dispose();
-            remapper = null;
+            lock (_remLock){
+                DisposeRemapper();
 
-            if (profile != "")
-            {
-                string fullPath = Path.Combine(DSRPaths.ProfilesPath, profile);
-                if (File.Exists(fullPath))
+                if (ProfileManager.TryGetProfile(profile, out FileInfo? profileFile) && profileFile != null)
                 {
-                    string ext = Path.GetExtension(fullPath)[1..];
+                    string ext = profileFile.Extension[1..];
                     remapper = RemapperCore.CreateRemapper(ext, logger);
                     if (remapper != null)
                     {
                         remapper.OnDeviceConsole += OnDeviceConsole;
-                        remapper.SetScript(fullPath, CustomMethods);
+                        remapper.SetScript(profileFile, CustomMethods);
                     }
                 }
+                CurrentProfile = profile;
+                DSRConfigs.SetLastProfile(Id, profile);
             }
-            CurrentProfile = profile;
-            DSRConfigs.SetLastProfile(Id, profile);
         }
         private void OnDeviceConsole(object sender, string message, LogLevel level)
         {
@@ -245,47 +242,70 @@ namespace DSRemapper.Framework
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                double delta = sw.Elapsed.TotalSeconds;
-                sw.Restart();
-                try
-                {
-                    if (IsConnected)
+                lock (_remLock){
+                    double delta = sw.Elapsed.TotalSeconds;
+                    sw.Restart();
+                    try
                     {
-                        IDSRInputReport report = controller.GetInputReport();
-                        OnGlobalRead?.Invoke(Id,report);
-                        infoTimer += delta;
-                        consoleTimer += delta;
-                        if (infoTimer >= infoLoopTime)
+                        if (IsConnected)
                         {
-                            infoTimer -= infoLoopTime;
-                            OnDeviceInfo?.Invoke(Id, controller.Info);
-                        }
-                        if (remapper != null)
-                        {
-                            controller.SendOutputReport(remapper.Remap(report, delta));
-                        }
-                        if (consoleTimer >= consoleLoopTime)
-                        {
-                            consoleTimer -= consoleLoopTime;
-                            OnGlobalDeviceConsole?.Invoke(Id, lastConsole.message, lastConsole.level);
+                            IDSRInputReport report = controller.GetInputReport();
+                            if (remapper != null)
+                                controller.SendOutputReport(remapper.Remap(report, delta));
+
+                            onReadTimer += delta;
+                            infoTimer += delta;
+                            consoleTimer += delta;
+                            if (onReadTimer >= onReadLoopTime)
+                            {
+                                onReadTimer -= onReadLoopTime;
+                                OnGlobalRead?.Invoke(Id, report);
+                            }
+                            if (infoTimer >= infoLoopTime)
+                            {
+                                infoTimer -= infoLoopTime;
+                                OnDeviceInfo?.Invoke(Id, controller.Info);
+                            }
+                            if (consoleTimer >= consoleLoopTime)
+                            {
+                                consoleTimer -= consoleLoopTime;
+                                OnGlobalDeviceConsole?.Invoke(Id, lastConsole.message, lastConsole.level);
+                            }
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    logger.LogError($"{e.Source}[{e.TargetSite}]({e.GetType().FullName}):\n{e.Message}\n{e.StackTrace}");
+                    catch (Exception e)
+                    {
+                        logger.LogError($"{e.Source}[{e.TargetSite}]({e.GetType().FullName}):\n{e.Message}\n{e.StackTrace}");
+                    }
                 }
 
-                Thread.Sleep(1); // to prevent CPU overload and leave space for other threads if it's necesary
+                //Thread.Sleep(1); // to prevent CPU overload and leave space for other threads if it's necesary
             }
         }
         /// <summary>
         /// Returns the byte array of the image for the controller
         /// </summary>
         /// <returns>The image as a byte array</returns>
-        public byte[] GetImage()
+        public byte[] GetImage() => PluginLoader.GetControllerImage(controller);
+        
+        /// <inheritdoc/>
+        public bool Equals(Remapper? other) => Id.Equals(other?.Id);
+        /// <inheritdoc/>
+        public bool Equals(IDSRInputController? other) => Id.Equals(other?.Id);
+        /// <inheritdoc/>
+        public override bool Equals(object? other)
         {
-            return PluginLoader.GetControllerImage(controller);
+            if (other is Remapper remapper)
+                return Equals(remapper);
+            if (other is IDSRInputController controller)
+                return Equals(controller);
+            return false;
         }
+        /// <inheritdoc/>
+        public static bool operator ==(Remapper? left, Remapper? right) => left?.Equals(right) ?? false;
+        /// <inheritdoc/>
+        public static bool operator !=(Remapper? left, Remapper? right) => (!left?.Equals(right)) ?? true;
+        /// <inheritdoc/>
+        public override int GetHashCode() => Id.GetHashCode();
     }
 }

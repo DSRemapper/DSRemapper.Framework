@@ -28,23 +28,21 @@ namespace DSRemapper.Framework
     /// </summary>
     public static class DSRConfigs
     {
-        private static readonly string configPath = Path.Combine(DSRPaths.ConfigPath, "DSConfigs.json");
-        private static List<RemapperConfig> remapperConfigs = null!;
+        private static readonly FileInfo configPath = DSRPaths.ConfigPath.GetFile("DSConfigs.json");
+        private static readonly List<RemapperConfig> remapperConfigs = [];
 
         /// <summary>
         /// DSRConfigs static contructor
         /// </summary>
         static DSRConfigs()
         {
-            if (File.Exists(configPath))
-                LoadConfigFile();
-            else
-                remapperConfigs = [];
+            if (configPath.Exists)
+                remapperConfigs = LoadConfigFile();
         }
-        private static void LoadConfigFile() => remapperConfigs = JsonSerializer
-            .Deserialize<List<RemapperConfig>>(File.ReadAllText(configPath)) ?? [];
+        private static List<RemapperConfig> LoadConfigFile() => JsonSerializer
+            .Deserialize<List<RemapperConfig>>(File.ReadAllText(configPath.FullName)) ?? [];
         private static void SaveConfigFile() =>
-            File.WriteAllText(configPath, JsonSerializer.Serialize(remapperConfigs));
+            File.WriteAllText(configPath.FullName, JsonSerializer.Serialize(remapperConfigs));
         /// <summary>
         /// Gets the controller config associated with the id.
         /// </summary>
@@ -52,12 +50,10 @@ namespace DSRemapper.Framework
         /// <returns></returns>
         public static RemapperConfig GetConfig(string id)
         {
-            if (!remapperConfigs.Exists((c) => c.Id == id))
+            if (!remapperConfigs.Exists((c) => c.Id.Equals(id)))
                 remapperConfigs.Add(new RemapperConfig(id));
 
-#pragma warning disable CS8603 // Posible tipo de valor devuelto de referencia nulo
-            return remapperConfigs.Find((c) => c.Id == id);
-#pragma warning restore CS8603 // Posible tipo de valor devuelto de referencia nulo
+            return remapperConfigs.Find((c) => c.Id.Equals(id))!;
         }
         /// <summary>
         /// Sets the controller config associated with the id.
@@ -67,7 +63,7 @@ namespace DSRemapper.Framework
         /// <returns></returns>
         public static void SetConfig(RemapperConfig config,string id)
         {
-            int index = remapperConfigs.IndexOf(remapperConfigs.Find((c) => c.Id == id)!);
+            int index = remapperConfigs.IndexOf(remapperConfigs.Find((c) => c.Id.Equals(id))!);
             if (index < 0)
                 remapperConfigs.Add(config);
             else

@@ -63,7 +63,7 @@ namespace DSRemapper.Framework
             while (!cancellationToken.IsCancellationRequested)
             {
                 var devs = GetDevicesInfo();
-                if(devs.Length != Remappers.Count)
+                if(!devs.Select(d => d.Id).OrderBy(id => id).SequenceEqual(Remappers.Select(r => r.Id).OrderBy(id => id)))
                 {
                     SetControllers(devs.Select((i) => i.CreateController()).ToList());
                     OnUpdate?.Invoke();
@@ -96,7 +96,7 @@ namespace DSRemapper.Framework
             List<Remapper> removeList = [];
             foreach (var rmp in Remappers)
             {
-                if (!controllers.Exists((c) => { return c.Id == rmp.Id; }))
+                if (!controllers.Exists(ctrl => { return rmp.Equals(ctrl); }))
                     removeList.Add(rmp);
             }
 
@@ -112,7 +112,7 @@ namespace DSRemapper.Framework
         /// <param name="controller">New input controller</param>
         private static void AddController(IDSRInputController controller)
         {
-            if (!Remappers.Exists((c) => { return c.Id == controller.Id; }))
+            if (!Remappers.Exists(rem => { return rem.Equals(controller); }))
             {
                 logger.LogInformation($"Physical device plugged: {controller.Name} [{controller.Id}]");
                 Remappers.Add(new(controller));
@@ -124,7 +124,7 @@ namespace DSRemapper.Framework
         /// <param name="controllerId">The id of the controller to disconnect</param>
         private static void RemoveController(string controllerId)
         {
-            Remapper? ctrlRemapper = Remappers.Find((c) => { return c.Id == controllerId; });
+            Remapper? ctrlRemapper = Remappers.Find(rem => { return rem.Id == controllerId; });
 
             if (ctrlRemapper != null)
             {
@@ -142,7 +142,7 @@ namespace DSRemapper.Framework
         internal static IDSRemapper? CreateRemapper(string fileExt, DSRLogger logger)
         {
             if (PluginLoader.RemapperPlugins.TryGetValue(fileExt,out ConstructorInfo? remapType))
-                return (IDSRemapper?)remapType?.Invoke([logger]);
+                return (IDSRemapper?)remapType?.Invoke([new DSROutput(), logger]);
 
             return null;
         }

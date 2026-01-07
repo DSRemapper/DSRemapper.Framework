@@ -14,9 +14,9 @@
 	  <RepositoryType>git</RepositoryType>
 	  <PackageProjectUrl>https://github.com/Oscar-Wohlfarhrt/DSRemapper</PackageProjectUrl>
 	  <RepositoryUrl>https://github.com/Oscar-Wohlfarhrt/DSRemapper</RepositoryUrl>
-	  <AssemblyVersion>0.2.3</AssemblyVersion>
+	  <AssemblyVersion>0.3.0</AssemblyVersion>
 	  <FileVersion>$(AssemblyVersion)</FileVersion>
-	  <Version>$(AssemblyVersion)-beta</Version>
+	  <Version>$(AssemblyVersion)</Version>
 	  <GenerateDocumentationFile>True</GenerateDocumentationFile>
 	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	  <PackageReadmeFile>Readme.md</PackageReadmeFile>
@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSRemapper.Core" Version="0.4.9" />
+    <PackageReference Include="DSRemapper.Core" Version="0.5.0" />
   </ItemGroup>
 
   <ItemGroup>
